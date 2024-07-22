@@ -4,9 +4,24 @@
 
 package frc.robot;
 
+import java.util.function.BooleanSupplier;
+
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.commands.PathPlannerAuto;
+import com.pathplanner.lib.path.PathConstraints;
+import com.pathplanner.lib.path.PathPlannerPath;
+import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
+import com.pathplanner.lib.util.PIDConstants;
+import com.pathplanner.lib.util.ReplanningConfig;
+
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.XboxController.Button;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
@@ -24,13 +39,29 @@ import frc.robot.subsystems.DriveSubsystem;
 public class RobotContainer {
   // The robot's subsystems and commands are defined here
   private final DriveSubsystem m_robotDrive = new DriveSubsystem();
-
   private final XboxController m_driverController = new XboxController(IOConstants.kDriverControllerPort);
+  private final SendableChooser<Command> autoChooser;
+
+  private BooleanSupplier shouldFlip = () -> false;
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
   public RobotContainer() {
+    AutoBuilder.configureHolonomic(m_robotDrive::getPose, m_robotDrive::resetOdometry,
+        m_robotDrive::getChassisSpeeds,
+        m_robotDrive::autonDrive,
+        new HolonomicPathFollowerConfig(
+            new PIDConstants(5, 0.0, 0.0), // Translation PID constants
+            new PIDConstants(5, 0.0, 0.0), // Rotation PID constants
+            4.5, // Max module speed, in m/s
+            0.4, // Drive base radius in meters. Distance from robot center to furthest module.
+            new ReplanningConfig(true, true)),
+        shouldFlip, m_robotDrive);
+
+
+    autoChooser = AutoBuilder.buildAutoChooser("Sample");
+    SmartDashboard.putData("Auto Chooser", autoChooser);
     // Configure the trigger bindings
     configureBindings();
 
@@ -43,18 +74,18 @@ public class RobotContainer {
                     * DriveConstants.kMaxSpeedMetersPerSecond
                     * (1 - m_driverController
                         .getLeftTriggerAxis()
-                        * IOConstants.kSlowModeScalar)
-                    * 0.8,
+                        * IOConstants.kSlowModeScalar),
+                    // * 0.8,
                 MathUtil.applyDeadband(
                     -m_driverController.getLeftX(),
                     IOConstants.kControllerDeadband)
                     * DriveConstants.kMaxSpeedMetersPerSecond
                     * (1 - m_driverController
                         .getLeftTriggerAxis()
-                        * IOConstants.kSlowModeScalar)
-                    * 0.8,
+                        * IOConstants.kSlowModeScalar),
+                    // * 0.8,
                 MathUtil.applyDeadband(
-                    m_driverController.getRightX(),
+                    -m_driverController.getRightX(),
                     IOConstants.kControllerDeadband)
                     * DriveConstants.kMaxAngularSpeedRadiansPerSecond
                     * (1 - m_driverController
@@ -71,6 +102,10 @@ public class RobotContainer {
   private void configureBindings() {
     new JoystickButton(m_driverController, Button.kStart.value)
         .onTrue(new InstantCommand(m_robotDrive::zeroHeading, m_robotDrive));
+    
+    // new JoystickButton(m_driverController, Button.kA.value).whileTrue(
+    //     AutoBuilder.pathfindToPose(new Pose2d(2.8, 5.5, new Rotation2d()), new PathConstraints(
+    //         DriveConstants.kMaxSpeedMetersPerSecond - 1, 5, DriveConstants.kMaxAngularSpeedRadiansPerSecond - 1, 5)));
   }
 
   /**
@@ -79,7 +114,16 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    // An example command will be run in autonomous
-    return null;
+    Command path = autoChooser.getSelected();
+
+    var alliance = DriverStation.getAlliance();
+    Command autonPath = path;
+    if (alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red) {
+        shouldFlip = ()->true;
+    }
+
+    //Reset Odometry is done by setting a starting pose in an AUTO
+    //TODO: could theoretically move this code for flipping into the initialization itself
+    return path;
   }
 }

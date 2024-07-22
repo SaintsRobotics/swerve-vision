@@ -4,6 +4,8 @@
 
 package frc.robot.subsystems;
 
+import java.util.Optional;
+
 import com.kauailabs.navx.frc.AHRS;
 
 import edu.wpi.first.math.MathUtil;
@@ -21,6 +23,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.VisionConstants;
+import frc.robot.subsystems.VisionSubsystem.Measurement;
 import frc.robot.Robot;
 
 public class DriveSubsystem extends SubsystemBase {
@@ -28,29 +31,25 @@ public class DriveSubsystem extends SubsystemBase {
       DriveConstants.kFrontLeftDriveMotorPort,
       DriveConstants.kFrontLeftTurningMotorPort,
       DriveConstants.kFrontLeftTurningEncoderPort,
-      DriveConstants.kFrontLeftDriveMotorReversed,
-      DriveConstants.kFrontLeftTurningEncoderOffset);
+      DriveConstants.kFrontLeftDriveMotorReversed);
 
   private final SwerveModule m_rearLeft = new SwerveModule(
       DriveConstants.kRearLeftDriveMotorPort,
       DriveConstants.kRearLeftTurningMotorPort,
       DriveConstants.kRearLeftTurningEncoderPort,
-      DriveConstants.kRearLeftDriveMotorReversed,
-      DriveConstants.kRearLeftTurningEncoderOffset);
+      DriveConstants.kRearLeftDriveMotorReversed);
 
   private final SwerveModule m_frontRight = new SwerveModule(
       DriveConstants.kFrontRightDriveMotorPort,
       DriveConstants.kFrontRightTurningMotorPort,
       DriveConstants.kFrontRightTurningEncoderPort,
-      DriveConstants.kFrontRightDriveMotorReversed,
-      DriveConstants.kFrontRightTurningEncoderOffset);
+      DriveConstants.kFrontRightDriveMotorReversed);
 
   private final SwerveModule m_rearRight = new SwerveModule(
       DriveConstants.kRearRightDriveMotorPort,
       DriveConstants.kRearRightTurningMotorPort,
       DriveConstants.kRearRightTurningEncoderPort,
-      DriveConstants.kRearRightDriveMotorReversed,
-      DriveConstants.kRearRightTurningEncoderOffset);
+      DriveConstants.kRearRightDriveMotorReversed);
 
   private final AHRS m_gyro = new AHRS();
   private double m_gyroAngle;
@@ -65,9 +64,14 @@ public class DriveSubsystem extends SubsystemBase {
       m_rearRight.getPosition()
   };
 
+  SwerveModuleState[] swerveModuleStates = { new SwerveModuleState(), new SwerveModuleState(), new SwerveModuleState(),
+      new SwerveModuleState() };
+
   private final SwerveDrivePoseEstimator m_poseEstimator = new SwerveDrivePoseEstimator(DriveConstants.kDriveKinematics,
       m_gyro.getRotation2d(), m_swerveModulePositions, new Pose2d(), VisionConstants.kOdometrySTDDevs,
       VisionConstants.kVisionSTDDevs);
+
+  private final VisionSubsystem m_visionSubsystem = new VisionSubsystem(); 
 
   private final Field2d m_field = new Field2d();
 
@@ -92,6 +96,14 @@ public class DriveSubsystem extends SubsystemBase {
     m_poseEstimator.update(Robot.isReal() ? m_gyro.getRotation2d() : new Rotation2d(m_gyroAngle),
         m_swerveModulePositions);
 
+    Optional<Measurement> latestReading = m_visionSubsystem.getMeasurement();
+
+    // SmartDashboard.putBoolean("reading present", latestReading.isPresent());
+
+    if (latestReading.isPresent()) {
+      m_poseEstimator.addVisionMeasurement(latestReading.get().pose.toPose2d(), latestReading.get().timestamp);
+    }
+
     m_field.setRobotPose(m_poseEstimator.getEstimatedPosition());
 
     SmartDashboard.putNumber("gyro angle", m_gyro.getAngle());
@@ -106,6 +118,8 @@ public class DriveSubsystem extends SubsystemBase {
         m_rearRight.getPosition().angle.getDegrees(), m_rearRight.driveOutput,
     };
     SmartDashboard.putNumberArray("AdvantageScope Swerve States", logData);
+
+    setModuleStates(swerveModuleStates);
   }
 
   /**
@@ -114,7 +128,9 @@ public class DriveSubsystem extends SubsystemBase {
    * @return The pose.
    */
   public Pose2d getPose() {
-    return m_poseEstimator.getEstimatedPosition();
+    Pose2d p = m_poseEstimator.getEstimatedPosition();
+    // System.out.println("getPose() -> " + p);
+    return p;
   }
 
   /**
@@ -165,13 +181,17 @@ public class DriveSubsystem extends SubsystemBase {
 
     // Depending on whether the robot is being driven in field relative, calculate
     // the desired states for each of the modules
-    SwerveModuleState[] swerveModuleStates = DriveConstants.kDriveKinematics.toSwerveModuleStates(
+    swerveModuleStates = DriveConstants.kDriveKinematics.toSwerveModuleStates(
         fieldRelative
             ? ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, calculatedRotation,
                 Robot.isReal() ? m_gyro.getRotation2d() : new Rotation2d(m_gyroAngle))
             : new ChassisSpeeds(xSpeed, ySpeed, calculatedRotation));
+  }
 
-    setModuleStates(swerveModuleStates);
+  public ChassisSpeeds getChassisSpeeds() {
+    ChassisSpeeds cs = DriveConstants.kDriveKinematics.toChassisSpeeds(swerveModuleStates);
+    // System.out.println("GetChassisSpeeds() -> " + cs);
+    return cs;
   }
 
   /**
@@ -202,13 +222,13 @@ public class DriveSubsystem extends SubsystemBase {
   }
 
   /**
-   * Sets the swerve ModuleStates.
+   * Sets the swerve ModuleStates. Overloaded for either auton builder or teleop.
    *
    * @param desiredStates The desired SwerveModule states.
    */
   public void setModuleStates(SwerveModuleState[] desiredStates) {
-    SwerveDriveKinematics.desaturateWheelSpeeds(
-        desiredStates, DriveConstants.kMaxSpeedMetersPerSecond);
+    SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, DriveConstants.kMaxSpeedMetersPerSecond);
+
     m_frontLeft.setDesiredState(desiredStates[0]);
     m_frontRight.setDesiredState(desiredStates[1]);
     m_rearLeft.setDesiredState(desiredStates[2]);
@@ -227,6 +247,12 @@ public class DriveSubsystem extends SubsystemBase {
     // simulator
     m_gyroAngle += DriveConstants.kDriveKinematics.toChassisSpeeds(desiredStates).omegaRadiansPerSecond
         * Robot.kDefaultPeriod;
+  }
+
+  public void autonDrive(ChassisSpeeds desiredChassisSpeeds) {
+    // System.out.println("autonDrive(" + desiredChassisSpeeds + ")");
+    SwerveModuleState[] desiredStates = DriveConstants.kDriveKinematics.toSwerveModuleStates(desiredChassisSpeeds);
+    swerveModuleStates = desiredStates;
   }
 
 }
