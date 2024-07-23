@@ -54,9 +54,6 @@ public class DriveSubsystem extends SubsystemBase {
   private final AHRS m_gyro = new AHRS();
   private double m_gyroAngle;
 
-  private final Timer m_headingCorrectionTimer = new Timer();
-  private final PIDController m_headingCorrectionPID = new PIDController(DriveConstants.kPHeadingCorrectionController,
-      0, 0);
   private SwerveModulePosition[] m_swerveModulePositions = new SwerveModulePosition[] {
       m_frontLeft.getPosition(),
       m_frontRight.getPosition(),
@@ -78,8 +75,6 @@ public class DriveSubsystem extends SubsystemBase {
   /** Creates a new DriveSubsystem. */
   public DriveSubsystem() {
     SmartDashboard.putData("Field", m_field);
-    m_headingCorrectionTimer.restart();
-    m_headingCorrectionPID.enableContinuousInput(-Math.PI, Math.PI);
   }
 
   @Override
@@ -143,54 +138,17 @@ public class DriveSubsystem extends SubsystemBase {
    *                      field.
    */
   public void drive(double xSpeed, double ySpeed, double rotation, boolean fieldRelative) {
-    // If we are rotating, reset the timer
-    if (rotation != 0) {
-      m_headingCorrectionTimer.reset();
-    }
-
-    /*
-     * Heading correction helps maintain the same heading and
-     * prevents rotational drive while our robot is translating
-     * 
-     * For heading correction we use a timer to ensure that we
-     * lose all rotational momentum before saving the heading
-     * that we want to maintain
-     */
-
-    // TODO: Test heading correction without timer
-    // TODO: Test heading correction using gyro's rotational velocity (if it is 0
-    // then set heading instead of timer)
-
-    // Save our desired rotation to a variable we can add our heading correction
-    // adjustments to
-    double calculatedRotation = rotation;
-
-    double currentAngle = MathUtil.angleModulus(m_gyro.getRotation2d().getRadians());
-
-    // If we are not translating or if not enough time has passed since the last
-    // time we rotated
-    if ((xSpeed == 0 && ySpeed == 0)
-        || m_headingCorrectionTimer.get() < DriveConstants.kHeadingCorrectionTurningStopTime) {
-      // Update our desired angle
-      m_headingCorrectionPID.setSetpoint(currentAngle);
-    } else {
-      // If we are translating or if we have not rotated for a long enough time
-      // then maintain our desired angle
-      calculatedRotation = m_headingCorrectionPID.calculate(currentAngle);
-    }
-
     // Depending on whether the robot is being driven in field relative, calculate
     // the desired states for each of the modules
     swerveModuleStates = DriveConstants.kDriveKinematics.toSwerveModuleStates(
         fieldRelative
-            ? ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, calculatedRotation,
+            ? ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rotation,
                 Robot.isReal() ? m_gyro.getRotation2d() : new Rotation2d(m_gyroAngle))
-            : new ChassisSpeeds(xSpeed, ySpeed, calculatedRotation));
+            : new ChassisSpeeds(xSpeed, ySpeed, rotation));
   }
 
   public ChassisSpeeds getChassisSpeeds() {
     ChassisSpeeds cs = DriveConstants.kDriveKinematics.toChassisSpeeds(swerveModuleStates);
-    // System.out.println("GetChassisSpeeds() -> " + cs);
     return cs;
   }
 
