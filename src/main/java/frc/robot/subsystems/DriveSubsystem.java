@@ -74,7 +74,6 @@ public class DriveSubsystem extends SubsystemBase {
   public DriveSubsystem(AHRS gyro) {
     m_gyro = gyro;
     SmartDashboard.putData("Field", m_field);
-    LimelightHelpers.SetRobotOrientation("limelight", m_poseEstimator.getEstimatedPosition().getRotation().getDegrees(), 0, 0, 0, 0, 0);
   }
 
   @Override
@@ -116,10 +115,6 @@ public class DriveSubsystem extends SubsystemBase {
    */
   public Pose2d getPose() {
     return m_poseEstimator.getEstimatedPosition();
-  }
-
-  public double getGyroRate(){
-    return m_gyro.getRate();
   }
 
   /**

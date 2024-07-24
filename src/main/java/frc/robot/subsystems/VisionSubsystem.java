@@ -66,6 +66,7 @@ public class VisionSubsystem extends SubsystemBase {
   public void periodic() {
     boolean doRejectUpdate = false;
 
+    LimelightHelpers.SetRobotOrientation("limelight", m_gyro.getAngle(), m_gyro.getRate(), VisionConstants.kLimelightCamPose[4], 0, VisionConstants.kLimelightCamPose[3], 0);
     LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
     if(Math.abs(m_gyro.getRate()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
     {
