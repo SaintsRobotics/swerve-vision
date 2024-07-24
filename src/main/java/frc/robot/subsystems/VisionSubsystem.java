@@ -8,7 +8,10 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import com.kauailabs.navx.frc.AHRS;
+
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
@@ -25,6 +28,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.VisionConstants;
+import frc.robot.LimelightHelpers;
 
 /**
  * <p>
@@ -50,69 +54,45 @@ import frc.robot.Constants.VisionConstants;
  * </ul>
  */
 public class VisionSubsystem extends SubsystemBase {
-
-  NetworkTable m_visionNetworkTable = NetworkTableInstance.getDefault().getTable("limelight");
-
-  private final DoubleArraySubscriber m_botPose;
-
-  private final IntegerSubscriber m_tv;
-
   private Consumer<Measurement> m_VisionConsumer;
+  private AHRS m_gyro;
 
   /** Creates a new Limelight. */
-  public VisionSubsystem() {
-    // Provide the limelight with the camera pose relative to the center of the
-    // robot
-    m_visionNetworkTable.getEntry("camerapose_robotspace_set").setDoubleArray(VisionConstants.kLimelightCamPose);
-
-    // Create subscribers to get values from the limelight
-    m_botPose = m_visionNetworkTable.getDoubleArrayTopic("botpose_wpiblue").subscribe(null);
-    m_tv = m_visionNetworkTable.getIntegerTopic("tv").subscribe(0);
+  public VisionSubsystem(AHRS gyro) {
+    m_gyro = gyro;
   }
 
   @Override
   public void periodic() {
-    TimestampedDoubleArray[] updates = m_botPose.readQueue();
+    boolean doRejectUpdate = false;
 
-    //SmartDashboard.putBoolean("Limelight Has Target", m_tv.get() == 1);
-
-    TimestampedDoubleArray update = updates[updates.length - 1];
-
-    // // If the latest update is empty or we don't see an april tag then return nothing
-    // if (Arrays.equals(update.value, new double[6]) || m_tv.get() == 0) {
-    //   return Optional.empty();
-    // }
-
-    double x = update.value[0];
-    double y = update.value[1];
-    double z = update.value[2];
-    double roll = Units.degreesToRadians(update.value[3]);
-    double pitch = Units.degreesToRadians(update.value[4]);
-    double yaw = Units.degreesToRadians(update.value[5]);
-
-    double timestamp = Timer.getFPGATimestamp() - (update.value[6]/1000.0);
-    Pose3d pose = new Pose3d(new Translation3d(x, y, z), new Rotation3d(roll, pitch, yaw));
-
-    if (updates.length > 0) {
-      m_VisionConsumer.accept(new Measurement(
-        timestamp,
-        pose,
-        VisionConstants.kVisionSTDDevs));
+    LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
+    if(Math.abs(m_gyro.getRate()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
+    {
+      doRejectUpdate = true;
+    }
+    if(mt2.tagCount == 0)
+    {
+      doRejectUpdate = true;
+    }
+    if(!doRejectUpdate)
+    {
+      m_VisionConsumer.accept(new Measurement(mt2.timestampSeconds, mt2.pose, VecBuilder.fill(.7,.7,9999999)));
     }
   }
 
   public static class Measurement {
     public double timestamp;
-    public Pose3d pose;
+    public Pose2d pose;
     public Matrix<N3, N1> stdDeviation;
 
-    public Measurement(double timestamp, Pose3d pose, Matrix<N3, N1> stdDeviation) {
+    public Measurement(double timestamp, Pose2d pose, Matrix<N3, N1> stdDeviation) {
       this.timestamp = timestamp;
       this.pose = pose;
       this.stdDeviation = stdDeviation;
     }
 
-    public Pose3d getPose(){
+    public Pose2d getPose2d(){
       return pose;
     }
 

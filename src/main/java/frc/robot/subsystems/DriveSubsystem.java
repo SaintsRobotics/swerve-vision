@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.VisionConstants;
+import frc.robot.LimelightHelpers;
 import frc.robot.subsystems.VisionSubsystem.Measurement;
 import frc.robot.Robot;
 
@@ -48,8 +49,8 @@ public class DriveSubsystem extends SubsystemBase {
       DriveConstants.kRearRightTurningEncoderPort,
       DriveConstants.kRearRightDriveMotorReversed);
 
-  private final AHRS m_gyro = new AHRS();
   private double m_gyroAngle; // Used in simulation
+  private AHRS m_gyro;
 
   private SwerveModulePosition[] m_swerveModulePositions = new SwerveModulePosition[] {
       m_frontLeft.getPosition(),
@@ -67,11 +68,13 @@ public class DriveSubsystem extends SubsystemBase {
 
   private final Field2d m_field = new Field2d();
 
-  public Consumer<Measurement> VisionConsumer = a -> m_poseEstimator.addVisionMeasurement(a.getPose().toPose2d(), a.getTimestamp());
+  public Consumer<Measurement> VisionConsumer = a -> m_poseEstimator.addVisionMeasurement(a.getPose2d(), a.getTimestamp());
 
   /** Creates a new DriveSubsystem. */
-  public DriveSubsystem() {
+  public DriveSubsystem(AHRS gyro) {
+    m_gyro = gyro;
     SmartDashboard.putData("Field", m_field);
+    LimelightHelpers.SetRobotOrientation("limelight", m_poseEstimator.getEstimatedPosition().getRotation().getDegrees(), 0, 0, 0, 0, 0);
   }
 
   @Override
@@ -113,6 +116,10 @@ public class DriveSubsystem extends SubsystemBase {
    */
   public Pose2d getPose() {
     return m_poseEstimator.getEstimatedPosition();
+  }
+
+  public double getGyroRate(){
+    return m_gyro.getRate();
   }
 
   /**
