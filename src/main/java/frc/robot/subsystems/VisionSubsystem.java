@@ -66,7 +66,7 @@ public class VisionSubsystem extends SubsystemBase {
     m_visionNetworkTable.getEntry("camerapose_robotspace_set").setDoubleArray(VisionConstants.kLimelightCamPose);
 
     // Create subscribers to get values from the limelight
-    m_botPose = m_visionNetworkTable.getDoubleArrayTopic("botpose_wpiblue").subscribe(null);
+    m_botPose = m_visionNetworkTable.getDoubleArrayTopic("botpose_orb_wpiblue").subscribe(null);
     m_tv = m_visionNetworkTable.getIntegerTopic("tv").subscribe(0);
   }
 
@@ -76,7 +76,7 @@ public class VisionSubsystem extends SubsystemBase {
 
     //SmartDashboard.putBoolean("Limelight Has Target", m_tv.get() == 1);
 
-    TimestampedDoubleArray update = updates[updates.length - 1];
+    TimestampedDoubleArray update = updates[0];
 
     // // If the latest update is empty or we don't see an april tag then return nothing
     // if (Arrays.equals(update.value, new double[6]) || m_tv.get() == 0) {
