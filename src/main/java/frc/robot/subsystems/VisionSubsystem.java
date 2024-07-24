@@ -6,8 +6,10 @@ package frc.robot.subsystems;
 
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -55,6 +57,8 @@ public class VisionSubsystem extends SubsystemBase {
 
   private final IntegerSubscriber m_tv;
 
+  private Consumer<Measurement> m_VisionConsumer;
+
   /** Creates a new Limelight. */
   public VisionSubsystem() {
     // Provide the limelight with the camera pose relative to the center of the
@@ -68,26 +72,16 @@ public class VisionSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    // This method will be called once per scheduler run
-
-    SmartDashboard.putBoolean("Limelight Has Target", m_tv.get() == 1);
-  }
-
-  public Optional<Measurement> getMeasurement() {
     TimestampedDoubleArray[] updates = m_botPose.readQueue();
 
-    // If we have had no updates since the last time this method ran then return
-    // nothing
-    if (updates.length == 0) {
-      return Optional.empty();
-    }
+    //SmartDashboard.putBoolean("Limelight Has Target", m_tv.get() == 1);
 
     TimestampedDoubleArray update = updates[updates.length - 1];
 
-    // If the latest update is empty or we don't see an april tag then return nothing
-    if (Arrays.equals(update.value, new double[6]) || m_tv.get() == 0) {
-      return Optional.empty();
-    }
+    // // If the latest update is empty or we don't see an april tag then return nothing
+    // if (Arrays.equals(update.value, new double[6]) || m_tv.get() == 0) {
+    //   return Optional.empty();
+    // }
 
     double x = update.value[0];
     double y = update.value[1];
@@ -99,10 +93,12 @@ public class VisionSubsystem extends SubsystemBase {
     double timestamp = Timer.getFPGATimestamp() - (update.value[6]/1000.0);
     Pose3d pose = new Pose3d(new Translation3d(x, y, z), new Rotation3d(roll, pitch, yaw));
 
-    return Optional.of(new Measurement(
+    if (updates.length > 0) {
+      m_VisionConsumer.accept(new Measurement(
         timestamp,
         pose,
         VisionConstants.kVisionSTDDevs));
+    }
   }
 
   public static class Measurement {
@@ -115,5 +111,21 @@ public class VisionSubsystem extends SubsystemBase {
       this.pose = pose;
       this.stdDeviation = stdDeviation;
     }
+
+    public Pose3d getPose(){
+      return pose;
+    }
+
+    public double getTimestamp(){
+      return timestamp;
+    }
+
+    public Matrix<N3, N1> getDeviation(){
+      return stdDeviation;
+    }
+  }
+
+  public void acceptConsumer(Consumer<Measurement> consume){
+    m_VisionConsumer = consume;
   }
 }
