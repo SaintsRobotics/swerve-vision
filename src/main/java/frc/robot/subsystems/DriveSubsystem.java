@@ -4,13 +4,10 @@
 
 package frc.robot.subsystems;
 
-import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.kauailabs.navx.frc.AHRS;
 
-import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -18,7 +15,6 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -53,7 +49,7 @@ public class DriveSubsystem extends SubsystemBase {
       DriveConstants.kRearRightDriveMotorReversed);
 
   private final AHRS m_gyro = new AHRS();
-  private double m_gyroAngle;
+  private double m_gyroAngle; // Used in simulation
 
   private SwerveModulePosition[] m_swerveModulePositions = new SwerveModulePosition[] {
       m_frontLeft.getPosition(),
@@ -107,7 +103,7 @@ public class DriveSubsystem extends SubsystemBase {
     };
     SmartDashboard.putNumberArray("AdvantageScope Swerve States", logData);
 
-    setModuleStates(swerveModuleStates);
+    setModuleStates(swerveModuleStates); // Allows simulation rotation to be accurate
   }
 
   /**
@@ -116,9 +112,7 @@ public class DriveSubsystem extends SubsystemBase {
    * @return The pose.
    */
   public Pose2d getPose() {
-    Pose2d p = m_poseEstimator.getEstimatedPosition();
-    // System.out.println("getPose() -> " + p);
-    return p;
+    return m_poseEstimator.getEstimatedPosition();
   }
 
   /**
@@ -138,11 +132,12 @@ public class DriveSubsystem extends SubsystemBase {
             ? ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rotation,
                 Robot.isReal() ? m_gyro.getRotation2d() : new Rotation2d(m_gyroAngle))
             : new ChassisSpeeds(xSpeed, ySpeed, rotation));
+
+    SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, DriveConstants.kMaxSpeedMetersPerSecond);
   }
 
   public ChassisSpeeds getChassisSpeeds() {
-    ChassisSpeeds cs = DriveConstants.kDriveKinematics.toChassisSpeeds(swerveModuleStates);
-    return cs;
+    return DriveConstants.kDriveKinematics.toChassisSpeeds(swerveModuleStates);
   }
 
   /**
@@ -173,13 +168,11 @@ public class DriveSubsystem extends SubsystemBase {
   }
 
   /**
-   * Sets the swerve ModuleStates. Overloaded for either auton builder or teleop.
+   * Sets the swerve ModuleStates.
    *
    * @param desiredStates The desired SwerveModule states.
    */
   public void setModuleStates(SwerveModuleState[] desiredStates) {
-    SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, DriveConstants.kMaxSpeedMetersPerSecond);
-
     m_frontLeft.setDesiredState(desiredStates[0]);
     m_frontRight.setDesiredState(desiredStates[1]);
     m_rearLeft.setDesiredState(desiredStates[2]);
@@ -199,11 +192,13 @@ public class DriveSubsystem extends SubsystemBase {
     m_gyroAngle += DriveConstants.kDriveKinematics.toChassisSpeeds(desiredStates).omegaRadiansPerSecond
         * Robot.kDefaultPeriod;
   }
-
+/**
+ * Method to drive the robot in Autonomous using ChassisSpeeds
+ * 
+ * @param desiredChassisSpeeds
+ */
   public void autonDrive(ChassisSpeeds desiredChassisSpeeds) {
-    // System.out.println("autonDrive(" + desiredChassisSpeeds + ")");
     SwerveModuleState[] desiredStates = DriveConstants.kDriveKinematics.toSwerveModuleStates(desiredChassisSpeeds);
     swerveModuleStates = desiredStates;
   }
-
 }
