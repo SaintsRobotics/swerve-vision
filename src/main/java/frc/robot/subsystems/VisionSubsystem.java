@@ -46,10 +46,12 @@ import frc.robot.LimelightHelpers;
 public class VisionSubsystem extends SubsystemBase {
   private Consumer<Measurement> m_VisionConsumer;
   private AHRS m_gyro;
+  private int[] validIDs = {3,4}; //TODO: correct these
 
   /** Creates a new Limelight. */
   public VisionSubsystem(AHRS gyro) {
     m_gyro = gyro;
+    LimelightHelpers.SetFiducialIDFiltersOverride("limelight", validIDs);
   }
 
   @Override
