@@ -66,7 +66,7 @@ public class VisionSubsystem extends SubsystemBase {
     m_visionNetworkTable.getEntry("camerapose_robotspace_set").setDoubleArray(VisionConstants.kLimelightCamPose);
 
     // Create subscribers to get values from the limelight
-    m_botPose = m_visionNetworkTable.getDoubleArrayTopic("botpose_wpiblue").subscribe(null);
+    m_botPose = m_visionNetworkTable.getDoubleArrayTopic("botpose_orb_wpiblue").subscribe(null);
     m_tv = m_visionNetworkTable.getIntegerTopic("tv").subscribe(0);
   }
 
@@ -76,12 +76,7 @@ public class VisionSubsystem extends SubsystemBase {
 
     //SmartDashboard.putBoolean("Limelight Has Target", m_tv.get() == 1);
 
-    TimestampedDoubleArray update = updates[updates.length - 1];
-
-    // // If the latest update is empty or we don't see an april tag then return nothing
-    // if (Arrays.equals(update.value, new double[6]) || m_tv.get() == 0) {
-    //   return Optional.empty();
-    // }
+    TimestampedDoubleArray update = updates[0];
 
     double x = update.value[0];
     double y = update.value[1];
@@ -93,7 +88,8 @@ public class VisionSubsystem extends SubsystemBase {
     double timestamp = Timer.getFPGATimestamp() - (update.value[6]/1000.0);
     Pose3d pose = new Pose3d(new Translation3d(x, y, z), new Rotation3d(roll, pitch, yaw));
 
-    if (updates.length > 0) {
+    // If the latest update is not empty and we see more than 1 april tag then return a measurement
+    if (!Arrays.equals(update.value, new double[6]) && m_tv.get() > 1) {
       m_VisionConsumer.accept(new Measurement(
         timestamp,
         pose,
