@@ -72,6 +72,20 @@ public class VisionSubsystem extends SubsystemBase {
     {
       m_VisionConsumer.accept(new Measurement(mt2.timestampSeconds, mt2.pose, VisionConstants.kVisionSTDDevs));
     }
+
+    getDistfromTarget();
+  }
+
+  private void getDistfromTarget(){
+    double targetOffsetAngle_Vertical = LimelightHelpers.getTY("limelight");
+    double limelightMountAngleDegrees = 0.0; 
+    double limelightLensHeightInches = 20.0; 
+    double goalHeightInches = 60.0; 
+    double angleToGoalDegrees = limelightMountAngleDegrees + targetOffsetAngle_Vertical;
+    double angleToGoalRadians = angleToGoalDegrees * (3.14159 / 180.0);
+    double distanceFromLimelightToGoalInches = (goalHeightInches - limelightLensHeightInches) / Math.tan(angleToGoalRadians);
+
+    SmartDashboard.putNumber("dist from goal", distanceFromLimelightToGoalInches);
   }
 
   public static class Measurement {
