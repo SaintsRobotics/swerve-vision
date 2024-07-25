@@ -68,7 +68,7 @@ public class VisionSubsystem extends SubsystemBase {
     }
     if(!doRejectUpdate)
     {
-      m_VisionConsumer.accept(new Measurement(mt2.timestampSeconds, mt2.pose, VecBuilder.fill(.7,.7,9999999)));
+      m_VisionConsumer.accept(new Measurement(mt2.timestampSeconds, mt2.pose, VisionConstants.kVisionSTDDevs));
     }
   }
 
