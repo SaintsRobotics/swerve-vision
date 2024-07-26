@@ -48,7 +48,7 @@ public class DriveSubsystem extends SubsystemBase {
       DriveConstants.kRearRightTurningEncoderPort,
       DriveConstants.kRearRightDriveMotorReversed);
 
-  private final AHRS m_gyro = new AHRS();
+  private AHRS m_gyro;
   private double m_gyroAngle; // Used in simulation
 
   private SwerveModulePosition[] m_swerveModulePositions = new SwerveModulePosition[] {
@@ -70,7 +70,8 @@ public class DriveSubsystem extends SubsystemBase {
   public Consumer<Measurement> VisionConsumer = a -> m_poseEstimator.addVisionMeasurement(a.getPose().toPose2d(), a.getTimestamp());
 
   /** Creates a new DriveSubsystem. */
-  public DriveSubsystem() {
+  public DriveSubsystem(AHRS gyro) {
+    m_gyro = gyro;
     SmartDashboard.putData("Field", m_field);
   }
 

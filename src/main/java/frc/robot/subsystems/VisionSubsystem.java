@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import com.kauailabs.navx.frc.AHRS;
+
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -57,43 +59,53 @@ public class VisionSubsystem extends SubsystemBase {
 
   private final IntegerSubscriber m_tv;
 
+  private AHRS m_gyro;
+
   private Consumer<Measurement> m_VisionConsumer;
 
   /** Creates a new Limelight. */
-  public VisionSubsystem() {
+  public VisionSubsystem(AHRS gyro) {
+    m_gyro = gyro;
     // Provide the limelight with the camera pose relative to the center of the
     // robot
     m_visionNetworkTable.getEntry("camerapose_robotspace_set").setDoubleArray(VisionConstants.kLimelightCamPose);
 
     // Create subscribers to get values from the limelight
+    // botpose_orb_wpiblue gets field relative pose according to the blue alliance station, using megatag2
     m_botPose = m_visionNetworkTable.getDoubleArrayTopic("botpose_orb_wpiblue").subscribe(null);
     m_tv = m_visionNetworkTable.getIntegerTopic("tv").subscribe(0);
   }
 
   @Override
   public void periodic() {
+    //Use gyro values over limelight yaw since its more accurate
+    NetworkTableInstance.getDefault().getTable("limelight").getEntry("robot_orientation_set").setDoubleArray(new double[] {-m_gyro.getAngle(), 0, 0, 0, 0, 0});
+
     TimestampedDoubleArray[] updates = m_botPose.readQueue();
 
-    //SmartDashboard.putBoolean("Limelight Has Target", m_tv.get() == 1);
+    //SmartDashboard.putBoolean("Limelight Has Target", m_tv.get() > 0);
 
-    TimestampedDoubleArray update = updates[0];
+    for (TimestampedDoubleArray update : updates) {
+      double x = update.value[0];
+      double y = update.value[1];
+      double z = update.value[2];
+      double roll = Units.degreesToRadians(update.value[3]);
+      double pitch = Units.degreesToRadians(update.value[4]);
+      double yaw = Units.degreesToRadians(update.value[5]);
 
-    double x = update.value[0];
-    double y = update.value[1];
-    double z = update.value[2];
-    double roll = Units.degreesToRadians(update.value[3]);
-    double pitch = Units.degreesToRadians(update.value[4]);
-    double yaw = Units.degreesToRadians(update.value[5]);
+      double total_latency = update.value[6];
 
-    double timestamp = Timer.getFPGATimestamp() - (update.value[6]/1000.0);
-    Pose3d pose = new Pose3d(new Translation3d(x, y, z), new Rotation3d(roll, pitch, yaw));
+      // Removes latency from timestamp
+      double timestamp = Timer.getFPGATimestamp() - (total_latency/1000.0);
+      Pose3d pose = new Pose3d(new Translation3d(x, y, z), new Rotation3d(roll, pitch, yaw));
 
-    // If the latest update is not empty and we see more than 1 april tag then return a measurement
-    if (!Arrays.equals(update.value, new double[6]) && m_tv.get() > 1) {
-      m_VisionConsumer.accept(new Measurement(
-        timestamp,
-        pose,
-        VisionConstants.kVisionSTDDevs));
+      // If the latest update is not empty and we see more than 1 april tag then return a measurement
+      if (!Arrays.equals(update.value, new double[6]) && m_tv.get() > 1) {
+        m_VisionConsumer.accept(new Measurement(
+          timestamp,
+          pose,
+          VisionConstants.kVisionSTDDevs));
+      }
     }
   }
 
