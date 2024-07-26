@@ -15,6 +15,7 @@ import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.VisionConstants;
@@ -58,7 +59,8 @@ public class VisionSubsystem extends SubsystemBase {
   public void periodic() {
     boolean doRejectUpdate = false;
 
-    LimelightHelpers.SetRobotOrientation("limelight", m_gyro.getAngle(), 0, 0, 0, 0, 0);
+    //AHRS has positive-clockwise coords, robot coordinate is negative-clockwise coords
+    LimelightHelpers.SetRobotOrientation("limelight", -m_gyro.getAngle(), 0, 0, 0, 0, 0);
     LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
     if(Math.abs(m_gyro.getRate()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
     {
@@ -82,7 +84,7 @@ public class VisionSubsystem extends SubsystemBase {
     double limelightLensHeightInches = 20.0; 
     double goalHeightInches = 60.0; 
     double angleToGoalDegrees = limelightMountAngleDegrees + targetOffsetAngle_Vertical;
-    double angleToGoalRadians = angleToGoalDegrees * (3.14159 / 180.0);
+    double angleToGoalRadians = Units.degreesToRadians(angleToGoalDegrees);
     double distanceFromLimelightToGoalInches = (goalHeightInches - limelightLensHeightInches) / Math.tan(angleToGoalRadians);
 
     SmartDashboard.putNumber("dist from goal", distanceFromLimelightToGoalInches);
