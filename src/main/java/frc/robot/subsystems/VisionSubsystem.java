@@ -78,7 +78,7 @@ public class VisionSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    //Use gyro values over limelight yaw since its more accurate
+    //Use gyro values in order for mgt2 functionality
     NetworkTableInstance.getDefault().getTable("limelight").getEntry("robot_orientation_set").setDoubleArray(new double[] {-m_gyro.getAngle(), 0, 0, 0, 0, 0});
 
     TimestampedDoubleArray[] updates = m_botPose.readQueue();
