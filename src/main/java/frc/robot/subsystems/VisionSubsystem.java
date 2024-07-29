@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.LimelightHelpers;
+import frc.robot.Robot;
 
 /**
  * <p>
@@ -58,6 +59,10 @@ public class VisionSubsystem extends SubsystemBase {
   @Override
   public void periodic() {
     boolean doRejectUpdate = false;
+
+    if (!Robot.isReal()){
+      return;
+    }
 
     //AHRS has positive-clockwise coords, robot coordinate is negative-clockwise coords
     LimelightHelpers.SetRobotOrientation("limelight", -m_gyro.getAngle(), 0, 0, 0, 0, 0);
