@@ -59,7 +59,6 @@ public class VisionSubsystem extends SubsystemBase {
   @Override
   public void periodic() {
     boolean doRejectUpdate = false;
-
     if (!Robot.isReal()){
       return;
     }
