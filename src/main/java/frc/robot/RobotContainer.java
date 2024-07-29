@@ -123,16 +123,6 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    Command path = autoChooser.getSelected();
-
-    var alliance = DriverStation.getAlliance();
-    Command autonPath = path;
-    if (alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red) {
-        shouldFlip = ()->true;
-    }
-
-    //Reset Odometry is done by setting a starting pose in an AUTO
-    //TODO: could theoretically move this code for flipping into the initialization itself
-    return path;
+    return autoChooser.getSelected();
   }
 }
