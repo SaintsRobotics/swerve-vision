@@ -39,13 +39,12 @@ import frc.robot.subsystems.VisionSubsystem;
  * (including subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
-  // The robot's subsystems and commands are defined here
   private final AHRS gyro = new AHRS();
-
   private final DriveSubsystem m_robotDrive = new DriveSubsystem(gyro);
   private final VisionSubsystem m_VisionSubsystem = new VisionSubsystem(gyro);
   private final XboxController m_driverController = new XboxController(IOConstants.kDriverControllerPort);
   private final SendableChooser<Command> autoChooser;
+
 
   private BooleanSupplier shouldFlip = () -> false;
 

@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.VisionConstants;
+import frc.robot.LimelightHelpers;
 import frc.robot.subsystems.VisionSubsystem.Measurement;
 import frc.robot.Robot;
 
@@ -48,8 +49,8 @@ public class DriveSubsystem extends SubsystemBase {
       DriveConstants.kRearRightTurningEncoderPort,
       DriveConstants.kRearRightDriveMotorReversed);
 
-  private AHRS m_gyro;
   private double m_gyroAngle; // Used in simulation
+  private AHRS m_gyro;
 
   private SwerveModulePosition[] m_swerveModulePositions = new SwerveModulePosition[] {
       m_frontLeft.getPosition(),
@@ -62,12 +63,12 @@ public class DriveSubsystem extends SubsystemBase {
       new SwerveModuleState() };
 
   private final SwerveDrivePoseEstimator m_poseEstimator = new SwerveDrivePoseEstimator(DriveConstants.kDriveKinematics,
-      m_gyro.getRotation2d(), m_swerveModulePositions, new Pose2d(), VisionConstants.kOdometrySTDDevs,
+      Robot.isReal() ? m_gyro.getRotation2d() : new Rotation2d(m_gyroAngle), m_swerveModulePositions, new Pose2d(), VisionConstants.kOdometrySTDDevs,
       VisionConstants.kVisionSTDDevs);
 
   private final Field2d m_field = new Field2d();
 
-  public Consumer<Measurement> VisionConsumer = a -> m_poseEstimator.addVisionMeasurement(a.getPose().toPose2d(), a.getTimestamp());
+  public Consumer<Measurement> VisionConsumer = a -> m_poseEstimator.addVisionMeasurement(a.getPose2d(), a.getTimestamp());
 
   /** Creates a new DriveSubsystem. */
   public DriveSubsystem(AHRS gyro) {
