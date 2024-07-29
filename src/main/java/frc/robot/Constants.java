@@ -85,11 +85,6 @@ public final class Constants {
     public static final double kMaxSpeedMetersPerSecond = 3.6576;
     /** For a a SDS Mk4i L1 swerve base with Neos */
     public static final double kMaxAngularSpeedRadiansPerSecond = 15.24 / 3;
-
-    /** Heading Correction */
-    public static final double kHeadingCorrectionTurningStopTime = 0.2;
-    // TODO: Tune this PID before running on a robot on the ground
-    public static final double kPHeadingCorrectionController = 5;
   }
 
   public static final class VisionConstants {
