@@ -45,7 +45,6 @@ public class RobotContainer {
   private final XboxController m_driverController = new XboxController(IOConstants.kDriverControllerPort);
   private final SendableChooser<Command> autoChooser;
 
-
   private BooleanSupplier shouldFlip = () -> false;
 
   /**
@@ -99,7 +98,7 @@ public class RobotContainer {
                 !m_driverController.getRightBumper()),
             m_robotDrive));
 
-    m_VisionSubsystem.acceptConsumer(m_robotDrive.VisionConsumer);
+    m_VisionSubsystem.acceptConsumer(m_robotDrive::addVisionMeasurement);
   }
 
   private void periodic(){

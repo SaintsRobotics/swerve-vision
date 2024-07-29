@@ -68,8 +68,6 @@ public class DriveSubsystem extends SubsystemBase {
 
   private final Field2d m_field = new Field2d();
 
-  public Consumer<Measurement> VisionConsumer = a -> m_poseEstimator.addVisionMeasurement(a.getPose2d(), a.getTimestamp());
-
   /** Creates a new DriveSubsystem. */
   public DriveSubsystem(AHRS gyro) {
     m_gyro = gyro;
@@ -165,8 +163,8 @@ public class DriveSubsystem extends SubsystemBase {
     m_gyroAngle = 0;
   }
 
-  public void addVisionMeasurement(Pose2d pose, double timestamp) {
-    m_poseEstimator.addVisionMeasurement(pose, timestamp);
+  public void addVisionMeasurement(Measurement measurement) {
+    m_poseEstimator.addVisionMeasurement(measurement.getPose2d(), measurement.getTimestamp(), measurement.getDeviation());
   }
 
   /**
