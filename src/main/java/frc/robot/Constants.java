@@ -105,6 +105,12 @@ public final class Constants {
     // Field size in meters
     public static final double kFieldWidth = 8.21055;
     public static final double kFieldLength = 16.54175;
+
+    //For using mtg1 or mtg2
+    public static final double maxRotSpeedMgt2 = 40; //TODO: tune.
+
+    //Valid targeting apriltag IDs
+    public static final int[] validIDs = {3,4}; //TODO: correct these
   }
 
 }

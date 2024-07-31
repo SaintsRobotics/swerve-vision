@@ -39,9 +39,7 @@ import frc.robot.subsystems.VisionSubsystem;
  * (including subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
-  private final AHRS gyro = new AHRS();
-  private final DriveSubsystem m_robotDrive = new DriveSubsystem(gyro);
-  private final VisionSubsystem m_VisionSubsystem = new VisionSubsystem(gyro);
+  private final DriveSubsystem m_robotDrive = new DriveSubsystem();
   private final XboxController m_driverController = new XboxController(IOConstants.kDriverControllerPort);
   private final SendableChooser<Command> autoChooser;
 
@@ -97,13 +95,8 @@ public class RobotContainer {
                     / 2,
                 !m_driverController.getRightBumper()),
             m_robotDrive));
-
-    m_VisionSubsystem.acceptConsumer(m_robotDrive::addVisionMeasurement);
   }
 
-  private void periodic(){
-
-  }
 
   /**
    * Use this method to define your button->command mappings.
