@@ -93,8 +93,7 @@ public class VisionSubsystem extends SubsystemBase {
         m_VisionConsumer.accept(new Measurement(mt1.timestampSeconds, mt1.pose, VisionConstants.kVisionSTDDevs));
       }
     }
-    else{
-      //AHRS has positive-clockwise coords, robot coordinate is negative-clockwise coords
+    else {
       LimelightHelpers.SetRobotOrientation("limelight", m_PoseSupplier.get().getRotation().getDegrees(), 0, 0, 0, 0, 0);
       LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
       if(mt2.tagCount == 0)
