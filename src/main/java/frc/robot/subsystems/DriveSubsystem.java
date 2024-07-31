@@ -20,8 +20,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.VisionConstants;
-import frc.robot.LimelightHelpers;
-import frc.robot.subsystems.VisionSubsystem.Measurement;
+import frc.saints.Measurement;
 import frc.robot.Robot;
 
 public class DriveSubsystem extends SubsystemBase {
@@ -50,7 +49,7 @@ public class DriveSubsystem extends SubsystemBase {
       DriveConstants.kRearRightDriveMotorReversed);
 
   private double m_gyroAngle; // Used in simulation
-  private AHRS m_gyro;
+  private final AHRS m_gyro = new AHRS();
 
   private SwerveModulePosition[] m_swerveModulePositions = new SwerveModulePosition[] {
       m_frontLeft.getPosition(),
@@ -69,8 +68,7 @@ public class DriveSubsystem extends SubsystemBase {
   private final Field2d m_field = new Field2d();
 
   /** Creates a new DriveSubsystem. */
-  public DriveSubsystem(AHRS gyro) {
-    m_gyro = gyro;
+  public DriveSubsystem() {
     SmartDashboard.putData("Field", m_field);
   }
 

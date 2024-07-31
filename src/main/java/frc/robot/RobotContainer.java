@@ -39,11 +39,10 @@ import frc.robot.subsystems.VisionSubsystem;
  * (including subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
-  private final AHRS gyro = new AHRS();
-  private final DriveSubsystem m_robotDrive = new DriveSubsystem(gyro);
-  private final VisionSubsystem m_VisionSubsystem = new VisionSubsystem(gyro);
-  private final XboxController m_driverController = new XboxController(IOConstants.kDriverControllerPort);
-  private final SendableChooser<Command> autoChooser;
+  public final DriveSubsystem m_robotDrive = new DriveSubsystem();
+  public final VisionSubsystem m_VisionSubsystem = new VisionSubsystem(m_gyro);
+  public final XboxController m_driverController = new XboxController(IOConstants.kDriverControllerPort);
+  public final SendableChooser<Command> autoChooser;
 
   private BooleanSupplier shouldFlip = () -> false;
 
@@ -98,12 +97,11 @@ public class RobotContainer {
                 !m_driverController.getRightBumper()),
             m_robotDrive));
 
-    m_VisionSubsystem.acceptConsumer(m_robotDrive::addVisionMeasurement);
+    
+    m_VisionSubsystem.acceptMeasurementConsumer(m_robotDrive::addVisionMeasurement);
+    m_VisionSubsystem.acceptPoseSupplier(m_robotDrive::getPose);
   }
 
-  private void periodic(){
-
-  }
 
   /**
    * Use this method to define your button->command mappings.

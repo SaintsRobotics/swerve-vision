@@ -7,6 +7,7 @@ package frc.robot.subsystems;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import com.kauailabs.navx.frc.AHRS;
 
@@ -16,9 +17,11 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.VisionConstants;
+import frc.saints.Measurement;
 import frc.robot.LimelightHelpers;
 import frc.robot.Robot;
 
@@ -47,78 +50,68 @@ import frc.robot.Robot;
  */
 public class VisionSubsystem extends SubsystemBase {
   private Consumer<Measurement> m_VisionConsumer;
+  private Supplier<Pose2d> m_PoseSupplier;
   private AHRS m_gyro;
-  private int[] validIDs = {3,4}; //TODO: correct these
 
   /** Creates a new Limelight. */
   public VisionSubsystem(AHRS gyro) {
     m_gyro = gyro;
-    LimelightHelpers.SetFiducialIDFiltersOverride("limelight", validIDs);
+    LimelightHelpers.SetFiducialIDFiltersOverride("limelight", VisionConstants.validIDs);
   }
 
   @Override
   public void periodic() {
     boolean doRejectUpdate = false;
+
     if (!Robot.isReal()){
       return;
     }
 
-    //AHRS has positive-clockwise coords, robot coordinate is negative-clockwise coords
-    LimelightHelpers.SetRobotOrientation("limelight", -m_gyro.getAngle(), 0, 0, 0, 0, 0);
-    LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
-    if(Math.abs(m_gyro.getRate()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
+    //Mtg1
+    if (m_gyro.getRate() > VisionConstants.maxRotSpeedMgt2)
     {
-      doRejectUpdate = true;
+      LimelightHelpers.PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight");
+      
+      if(mt1.tagCount == 1 && mt1.rawFiducials.length == 1)
+      {
+        if(mt1.rawFiducials[0].ambiguity > .7)
+        {
+          doRejectUpdate = true;
+        }
+        if(mt1.rawFiducials[0].distToCamera > 3)
+        {
+          doRejectUpdate = true;
+        }
+      }
+      if(mt1.tagCount == 0)
+      {
+        doRejectUpdate = true;
+      }
+
+      if(!doRejectUpdate)
+      {
+        m_VisionConsumer.accept(new Measurement(mt1.timestampSeconds, mt1.pose, VisionConstants.kVisionSTDDevs));
+      }
     }
-    if(mt2.tagCount == 0)
-    {
-      doRejectUpdate = true;
-    }
-    if(!doRejectUpdate)
-    {
-      m_VisionConsumer.accept(new Measurement(mt2.timestampSeconds, mt2.pose, VisionConstants.kVisionSTDDevs));
-    }
-
-    getDistfromTarget();
-  }
-
-  private void getDistfromTarget(){
-    double targetOffsetAngle_Vertical = LimelightHelpers.getTY("limelight");
-    double limelightMountAngleDegrees = 0.0; 
-    double limelightLensHeightInches = 20.0; 
-    double goalHeightInches = 60.0; 
-    double angleToGoalDegrees = limelightMountAngleDegrees + targetOffsetAngle_Vertical;
-    double angleToGoalRadians = Units.degreesToRadians(angleToGoalDegrees);
-    double distanceFromLimelightToGoalInches = (goalHeightInches - limelightLensHeightInches) / Math.tan(angleToGoalRadians);
-
-    SmartDashboard.putNumber("dist from goal", distanceFromLimelightToGoalInches);
-  }
-
-  public static class Measurement {
-    public double timestamp;
-    public Pose2d pose;
-    public Matrix<N3, N1> stdDeviation;
-
-    public Measurement(double timestamp, Pose2d pose, Matrix<N3, N1> stdDeviation) {
-      this.timestamp = timestamp;
-      this.pose = pose;
-      this.stdDeviation = stdDeviation;
-    }
-
-    public Pose2d getPose2d(){
-      return pose;
-    }
-
-    public double getTimestamp(){
-      return timestamp;
-    }
-
-    public Matrix<N3, N1> getDeviation(){
-      return stdDeviation;
+    else {
+      LimelightHelpers.SetRobotOrientation("limelight", m_PoseSupplier.get().getRotation().getDegrees(), 0, 0, 0, 0, 0);
+      LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
+      if(mt2.tagCount == 0)
+      {
+        doRejectUpdate = true;
+      }
+      if(!doRejectUpdate)
+      {
+        m_VisionConsumer.accept(new Measurement(mt2.timestampSeconds, mt2.pose, VisionConstants.kVisionSTDDevs));
+      }
     }
   }
 
-  public void acceptConsumer(Consumer<Measurement> consume){
+  public void acceptMeasurementConsumer(Consumer<Measurement> consume){
     m_VisionConsumer = consume;
+  }
+
+  public void acceptPoseSupplier(Supplier<Pose2d> supplier){
+    m_PoseSupplier = supplier;
   }
 }
