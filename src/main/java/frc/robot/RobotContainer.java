@@ -40,6 +40,7 @@ import frc.robot.subsystems.VisionSubsystem;
  */
 public class RobotContainer {
   private final DriveSubsystem m_robotDrive = new DriveSubsystem();
+  private final VisionSubsystem m_VisionSubsystem = new VisionSubsystem(m_gyro);
   private final XboxController m_driverController = new XboxController(IOConstants.kDriverControllerPort);
   private final SendableChooser<Command> autoChooser;
 
@@ -95,6 +96,10 @@ public class RobotContainer {
                     / 2,
                 !m_driverController.getRightBumper()),
             m_robotDrive));
+
+    
+    m_VisionSubsystem.acceptMeasurementConsumer(m_robotDrive::addVisionMeasurement);
+    m_VisionSubsystem.acceptPoseSupplier(m_robotDrive::getPose);
   }
 
 

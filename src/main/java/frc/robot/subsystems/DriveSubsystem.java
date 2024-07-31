@@ -21,7 +21,6 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.saints.Measurement;
-import frc.robot.LimelightHelpers;
 import frc.robot.Robot;
 
 public class DriveSubsystem extends SubsystemBase {
@@ -68,14 +67,9 @@ public class DriveSubsystem extends SubsystemBase {
 
   private final Field2d m_field = new Field2d();
 
-  private final VisionSubsystem m_VisionSubsystem = new VisionSubsystem(m_gyro);
-
   /** Creates a new DriveSubsystem. */
   public DriveSubsystem() {
     SmartDashboard.putData("Field", m_field);
-
-    m_VisionSubsystem.acceptMeasurementConsumer(this::addVisionMeasurement);
-    m_VisionSubsystem.acceptPoseSupplier(this::getPose);
   }
 
   @Override
